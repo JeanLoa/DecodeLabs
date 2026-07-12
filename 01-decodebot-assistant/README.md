@@ -1,121 +1,85 @@
 # DecodeBot Assistant
 
-DecodeBot Assistant is a command-line, rule-based chatbot created for Project 1
-of the DecodeLabs Artificial Intelligence internship program.
+DecodeBot is a polished, rule-based AI assistant created for Project 1 of the
+DecodeLabs Artificial Intelligence internship. It presents the required
+`if-elif-else` decision logic through a modern Streamlit experience inspired by
+contemporary conversational products, without pretending to be a large language
+model.
 
-The project demonstrates how explicit rules, input normalization, and control
-flow can produce predictable conversational behavior without machine learning
-or external AI services.
+## Product experience
 
-## Features
-
-- Runs continuously until the user enters an exit command.
-- Normalizes uppercase letters and surrounding spaces.
-- Recognizes greetings and six predefined intent categories.
-- Explains the project, requirements, and skills practiced.
-- Shows available commands through a help response.
-- Returns a fallback response for unsupported input.
-- Handles `Ctrl+C` and end-of-file interruptions cleanly.
-- Includes automated tests for the core response logic.
+- Professional responsive chat interface built with Streamlit.
+- Multiple conversations with automatic titles.
+- Persistent local history backed by SQLite.
+- Conversation export in JSON format.
+- Clear empty state, assistant identity, and local-memory indicator.
+- Deterministic answers for greetings, help, project, requirements, skills,
+  and exit intents.
+- Command-line mode retained as a lightweight alternative.
 
 ## Project structure
 
 ```text
 01-decodebot-assistant/
-|-- 01-decodebot-assistant.pdf
-|-- README.md
+|-- .streamlit/config.toml
+|-- 01-project.pdf
+|-- app.py
 |-- chatbot.py
+|-- conversation_store.py
 |-- main.py
-`-- test_chatbot.py
+|-- requirements.txt
+|-- test_chatbot.py
+`-- test_conversation_store.py
 ```
 
-- `chatbot.py` contains input normalization, intent recognition, and responses.
-- `main.py` contains the command-line interface and continuous conversation loop.
-- `test_chatbot.py` verifies normalization, intents, exit commands, empty input,
-  and fallback behavior.
-- `01-decodebot-assistant.pdf` contains the original project specification.
+The conversational rules stay in `chatbot.py`; Streamlit only handles the web
+experience, while `conversation_store.py` owns local persistence. This keeps the
+core logic reusable and independently testable.
 
-## Requirements
+## Run the web application
 
-- Python 3.8 or newer
-- No third-party packages
+```bash
+python -m pip install -r requirements.txt
+python -m streamlit run app.py
+```
 
-## Run the chatbot
+Open `http://localhost:8501` if it does not launch automatically.
 
-From the project directory, run:
+## Run the CLI version
 
 ```bash
 python main.py
 ```
 
-Example conversation:
-
-```text
-DecodeBot: Hello! I'm DecodeBot, your DecodeLabs internship assistant. Type 'help' to see the available commands.
-You: hello
-DecodeBot: Hello! I'm DecodeBot, your DecodeLabs internship assistant.
-You: project 1
-DecodeBot: Project 1 is a rule-based chatbot built with explicit decision logic.
-You: exit
-DecodeBot: Goodbye! Keep building and learning.
-```
-
-## Supported inputs
-
-| Intent | Example inputs |
-| --- | --- |
-| Greeting | `hello`, `hi`, `hey` |
-| Help | `help`, `commands`, `what can you do` |
-| Project | `project`, `project 1`, `what is project 1` |
-| Requirements | `requirements`, `project requirements` |
-| Skills | `skills`, `what will i learn` |
-| Exit | `exit`, `quit`, `bye`, `goodbye` |
-
-Any unsupported input receives a fallback response instead of stopping the
-program.
-
 ## Run the tests
-
-The tests use Python's built-in `unittest` framework:
 
 ```bash
 python -m unittest -v
 ```
 
-The suite covers:
-
-- Case and whitespace normalization
-- Every supported intent category
-- Exit-command detection
-- Empty input
-- Unknown input and fallback behavior
+The test suite covers normalization, every supported intent, exit detection,
+fallback behavior, conversation creation, message persistence, renaming, and
+deletion.
 
 ## DecodeLabs requirement coverage
 
 | Project requirement | Implementation |
 | --- | --- |
 | Handle greetings | Greeting branch in `get_response()` |
-| Handle exit commands | `is_exit_command()` and the exit response branch |
-| Use if-else logic | Explicit `if-elif-else` decision chain in `get_response()` |
-| Run continuously | `while True` loop in `run_chatbot()` |
+| Handle exit commands | Exit branch and `is_exit_command()` |
+| Use if-else logic | Explicit decision chain in `get_response()` |
+| Run continuously | `while True` loop in the CLI and persistent web session |
 | Sanitize input | `.strip().lower()` in `normalize_input()` |
-| Provide at least five intents | Greeting, help, project, requirements, skills, and exit |
+| Provide at least five intents | Six predefined intent categories |
 | Provide a fallback | Final `else` branch in `get_response()` |
-| Exit cleanly | `break` in `run_chatbot()` |
 
-## Design decisions
+## Scope and limitations
 
-The response logic is separated from the input/output loop. This makes the
-chatbot easier to test and allows a future interface to reuse the same core
-logic. Responses remain deterministic so every supported input produces a
-predictable and verifiable result.
-
-## Limitations
-
-DecodeBot matches predefined inputs. It does not infer meaning, learn from
-conversations, retain conversation history, or call a large language model.
-These limitations are intentional because Project 1 focuses on rule-based
-decision logic.
+DecodeBot remains intentionally rule-based, matching the Project 1 brief. The
+application remembers and exports conversations, but it does not infer unseen
+intent, learn from messages, or call an LLM. The sophistication is concentrated
+in product design, usability, architecture, and persistence so the submission
+looks professional without misrepresenting its AI capabilities.
 
 ## Author
 

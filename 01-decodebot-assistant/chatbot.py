@@ -11,6 +11,34 @@ REQUIREMENT_COMMANDS = {
 SKILL_COMMANDS = {"skills", "what skills will i learn", "what will i learn"}
 EXIT_COMMANDS = {"exit", "quit", "bye", "goodbye"}
 
+RESPONSES = {
+    "empty": (
+        "Please enter a message or type 'help' to see the available commands."
+    ),
+    "greeting": (
+        "Hello! I'm DecodeBot, your DecodeLabs internship assistant."
+    ),
+    "help": (
+        "Available commands: ask about the project, requirements, or skills; "
+        "type 'exit' to end the conversation."
+    ),
+    "project": (
+        "Project 1 is a rule-based chatbot built with explicit decision logic."
+    ),
+    "requirements": (
+        "The chatbot must handle greetings and exit commands, use if-else "
+        "logic, and run in a continuous loop."
+    ),
+    "skills": (
+        "This project practices control flow, decision-making logic, input "
+        "normalization, and basic AI concepts."
+    ),
+    "exit": "Goodbye! Keep building and learning.",
+    "fallback": (
+        "I don't understand that yet. Type 'help' to see what you can ask."
+    ),
+}
+
 
 def normalize_input(user_input: str) -> str:
     """Normalize user input so predefined commands can be matched reliably."""
@@ -27,29 +55,20 @@ def get_response(user_input: str) -> str:
     clean_input = normalize_input(user_input)
 
     if not clean_input:
-        return "Please enter a message or type 'help' to see the available commands."
+        intent = "empty"
     elif clean_input in GREETING_COMMANDS:
-        return "Hello! I'm DecodeBot, your DecodeLabs internship assistant."
+        intent = "greeting"
     elif clean_input in HELP_COMMANDS:
-        return (
-            "Available commands: ask about the project, requirements, or skills; "
-            "type 'exit' to end the conversation."
-        )
+        intent = "help"
     elif clean_input in PROJECT_COMMANDS:
-        return (
-            "Project 1 is a rule-based chatbot built with explicit decision logic."
-        )
+        intent = "project"
     elif clean_input in REQUIREMENT_COMMANDS:
-        return (
-            "The chatbot must handle greetings and exit commands, use if-else "
-            "logic, and run in a continuous loop."
-        )
+        intent = "requirements"
     elif clean_input in SKILL_COMMANDS:
-        return (
-            "This project practices control flow, decision-making logic, input "
-            "normalization, and basic AI concepts."
-        )
+        intent = "skills"
     elif clean_input in EXIT_COMMANDS:
-        return "Goodbye! Keep building and learning."
+        intent = "exit"
     else:
-        return "I don't understand that yet. Type 'help' to see what you can ask."
+        intent = "fallback"
+
+    return RESPONSES.get(intent, RESPONSES["fallback"])

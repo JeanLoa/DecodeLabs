@@ -1,6 +1,6 @@
 """Command-line entry point for DecodeBot."""
 
-from chatbot import get_response, is_exit_command
+from chatbot import get_reply, is_exit_command
 
 WELCOME_MESSAGE = (
     "Hello! I'm DecodeBot, your DecodeLabs internship assistant. "
@@ -12,6 +12,7 @@ INTERRUPTED_MESSAGE = "Goodbye! Keep building and learning."
 def run_chatbot() -> None:
     """Run the chatbot until the user enters an exit command."""
     print(f"DecodeBot: {WELCOME_MESSAGE}")
+    previous_intent: str | None = None
 
     while True:
         try:
@@ -20,8 +21,11 @@ def run_chatbot() -> None:
             print(f"\nDecodeBot: {INTERRUPTED_MESSAGE}")
             break
 
-        response = get_response(user_input)
-        print(f"DecodeBot: {response}")
+        reply = get_reply(user_input, previous_intent)
+        print(f"DecodeBot: {reply.content}")
+
+        if reply.matched and reply.intent not in {"empty", "exit", "fallback"}:
+            previous_intent = reply.intent
 
         if is_exit_command(user_input):
             break

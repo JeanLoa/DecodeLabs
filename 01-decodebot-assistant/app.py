@@ -7,7 +7,7 @@ from pathlib import Path
 
 import streamlit as st
 
-from chatbot import get_response
+from chatbot import INTENT_RULES, get_reply, previous_supported_intent, supported_phrases
 from conversation_store import ConversationStore
 
 
@@ -37,6 +37,9 @@ st.markdown(
     [data-testid="stChatInput"] { border-color:#52525b; box-shadow:0 10px 40px #0008; }
     .status { border:1px solid #27272a; border-radius:12px; padding:.7rem .8rem; color:#a1a1aa; font-size:.76rem; }
     .status-dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:#34d399; margin-right:.45rem; }
+    .trace { border:1px solid #3f3f46; border-radius:10px; padding:.55rem .75rem; color:#a1a1aa;
+      font-size:.76rem; margin:.65rem 0 1rem; background:#18181b88; }
+    .trace b { color:#c4b5fd; }
     #MainMenu, footer { visibility:hidden; }
     </style>
     """,
@@ -73,8 +76,20 @@ with st.sidebar:
             st.session_state.conversation_id = conversation.id
             st.rerun()
 
+    with st.expander("Frases disponibles"):
+        st.caption("El motor reconoce frases completas después de normalizar acentos, puntuación y espacios.")
+        for intent_label, phrases in supported_phrases("es").items():
+            st.markdown(f"**{intent_label}**")
+            st.caption(" · ".join(phrases))
+
     st.markdown("---")
-    st.markdown('<div class="status"><span class="status-dot"></span>Memoria local activa<br>Los chats se guardan en este dispositivo.</div>', unsafe_allow_html=True)
+    phrase_count = sum(len(phrases) for phrases in supported_phrases("es").values())
+    st.markdown(
+        f'<div class="status"><span class="status-dot"></span>Motor determinista activo<br>'
+        f'{len(INTENT_RULES)} intenciones · {phrase_count} frases en español<br>'
+        'Memoria local en este dispositivo.</div>',
+        unsafe_allow_html=True,
+    )
 
 
 conversation_id = st.session_state.conversation_id
@@ -87,6 +102,7 @@ with right:
     export_payload = json.dumps(messages, ensure_ascii=False, indent=2)
     st.download_button("Exportar", export_payload, "decodebot-chat.json", "application/json", use_container_width=True)
 
+quick_prompt: str | None = None
 if not messages:
     st.markdown(
         """
@@ -95,21 +111,38 @@ if not messages:
           <h1>¿En qué puedo ayudarte?</h1>
           <p>Explora DecodeLabs, consulta los requisitos del proyecto o descubre las habilidades que demuestra este asistente.</p>
           <div class="capabilities">
-            <span class="capability">Respuestas inmediatas</span>
+            <span class="capability">Lookup O(1)</span>
             <span class="capability">Historial persistente</span>
-            <span class="capability">Privacidad local</span>
+            <span class="capability">Reglas trazables</span>
           </div>
         </section>
         """,
         unsafe_allow_html=True,
     )
+    prompt_columns = st.columns(3)
+    if prompt_columns[0].button("¿Qué es el proyecto?", use_container_width=True):
+        quick_prompt = "¿Qué es el proyecto 1?"
+    if prompt_columns[1].button("Ver requisitos", use_container_width=True):
+        quick_prompt = "¿Cuáles son los requisitos?"
+    if prompt_columns[2].button("Explorar arquitectura", use_container_width=True):
+        quick_prompt = "¿Cómo está construido?"
 else:
     for message in messages:
         avatar = "👤" if message["role"] == "user" else "🤖"
         with st.chat_message(message["role"], avatar=avatar):
             st.markdown(message["content"])
 
-prompt = st.chat_input("Escribe un mensaje para DecodeBot…")
+trace = st.session_state.get("last_trace", {}).get(conversation_id)
+if trace:
+    context_label = " · memoria contextual" if trace["contextual"] else ""
+    match_label = "regla encontrada" if trace["matched"] else "fallback controlado"
+    st.markdown(
+        f'<div class="trace"><b>Ruta de decisión</b> · entrada normalizada → {trace["intent"]} '
+        f'→ {match_label}{context_label}</div>',
+        unsafe_allow_html=True,
+    )
+
+prompt = st.chat_input("Escribe un mensaje para DecodeBot…") or quick_prompt
 if prompt:
     is_first_message = not messages
     store.add_message(conversation_id, "user", prompt)
@@ -117,6 +150,13 @@ if prompt:
         title = " ".join(prompt.split())[:34]
         store.rename_conversation(conversation_id, title + ("…" if len(prompt) > 34 else ""))
 
-    response = get_response(prompt)
-    store.add_message(conversation_id, "assistant", response)
+    reply = get_reply(prompt, previous_supported_intent(messages))
+    store.add_message(conversation_id, "assistant", reply.content)
+    if "last_trace" not in st.session_state:
+        st.session_state.last_trace = {}
+    st.session_state.last_trace[conversation_id] = {
+        "intent": reply.intent,
+        "matched": reply.matched,
+        "contextual": reply.contextual,
+    }
     st.rerun()

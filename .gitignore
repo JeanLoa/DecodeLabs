@@ -3,6 +3,13 @@ __pycache__/
 *.py[cod]
 .streamlit/secrets.toml
 **/data/*.db
+02-decode-classify/data/*.zip
+02-decode-classify/data/raw/*.csv
+!02-decode-classify/data/raw/titanic_raw.csv
+02-decode-classify/data/processed/*.csv
+02-decode-classify/data/processed/*.json
+**/pytest-cache-files-*/
+**/.test-data/
 **/.test-data/
 
 # Test and coverage artifacts

@@ -1,8 +1,15 @@
 # Raw data
 
-`titanic_raw.csv` is the immutable input consumed by the ETL pipeline.
+`iris.csv` is generated from `sklearn.datasets.load_iris` and contains the 150
+canonical Iris observations: 50 setosa, 50 versicolor and 50 virginica.
 
-The bundled local demo currently contains 418 Kaggle test passengers with
-submission-derived labels. It can exercise the complete application, but those
-labels are not verified training ground truth. Replace it with the official
-labeled `train.csv` content when benchmark-quality evaluation is required.
+Its model contract is:
+
+- `sepal_length_cm`
+- `sepal_width_cm`
+- `petal_length_cm`
+- `petal_width_cm`
+- `species`
+
+The four measurements are expressed in centimeters. The target uses readable
+species names instead of scikit-learn's numeric class identifiers.

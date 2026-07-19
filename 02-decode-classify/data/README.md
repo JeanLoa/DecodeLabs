@@ -1,8 +1,12 @@
 # Data workspace
 
-- `raw/titanic_raw.csv` preserves the source exactly as received.
-- `processed/titanic_processed.csv` contains the validated, cleaned model-ready dataset.
+- `raw/iris.csv` is the versioned canonical input generated from
+  `sklearn.datasets.load_iris`.
+- `processed/iris_processed.csv` is the validated, canonical ETL output used by
+  model training.
+- `processed/etl_report.json` records ETL status, quality counts, provenance and
+  class balance.
 
-The bundled raw demo source is versioned so the application can initialize
-automatically after a clone. Processed CSV and quality-report artifacts are
-reproducible ETL outputs and remain excluded from Git.
+The raw dataset is never edited in place by the regular ETL command. Processed
+CSV and quality-report artifacts are reproducible outputs and remain excluded
+from Git.

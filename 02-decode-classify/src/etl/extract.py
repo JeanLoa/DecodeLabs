@@ -1,49 +1,71 @@
-"""Extract and validate the raw Kaggle Titanic training dataset."""
+"""Extract Iris CSV data and normalize common source column names."""
+
+from __future__ import annotations
 
 from pathlib import Path
 from typing import IO
-from io import StringIO
 
 import pandas as pd
 
-from src.data import REQUIRED_COLUMNS, TARGET
+from src.data import FEATURES, REQUIRED_COLUMNS, SPECIES, TARGET
+
+_COLUMN_ALIASES = {
+    "sepallength": FEATURES[0],
+    "sepallengthcm": FEATURES[0],
+    "sepalwidth": FEATURES[1],
+    "sepalwidthcm": FEATURES[1],
+    "petallength": FEATURES[2],
+    "petallengthcm": FEATURES[2],
+    "petalwidth": FEATURES[3],
+    "petalwidthcm": FEATURES[3],
+    "species": TARGET,
+    "class": TARGET,
+    "target": TARGET,
+    "variety": TARGET,
+}
 
 
-def _repair_collapsed_rows(data: pd.DataFrame) -> pd.DataFrame:
-    """Repair CSVs whose complete rows were quoted into the first column."""
-    if len(data.columns) < 2:
-        return data
-    trailing = data.iloc[:, 1:]
-    first_column = data.iloc[:, 0].astype("string")
-    if trailing.isna().all().all() and first_column.str.contains(",", regex=False).all():
-        reconstructed = ",".join(str(column) for column in data.columns)
-        reconstructed += "\n" + "\n".join(first_column.astype(str))
-        return pd.read_csv(StringIO(reconstructed))
+def _column_key(column: object) -> str:
+    return "".join(character for character in str(column).strip().lower() if character.isalnum())
+
+
+def _canonicalize_columns(data: pd.DataFrame) -> pd.DataFrame:
+    renames: dict[object, str] = {}
+    claimed: dict[str, object] = {}
+    for column in data.columns:
+        canonical = _COLUMN_ALIASES.get(_column_key(column))
+        if canonical is None:
+            continue
+        if canonical in claimed:
+            raise ValueError(
+                f"Multiple source columns map to {canonical}: {claimed[canonical]!r} and {column!r}."
+            )
+        claimed[canonical] = column
+        renames[column] = canonical
+    return data.rename(columns=renames)
+
+
+def extract_iris(source: str | Path | IO[bytes]) -> pd.DataFrame:
+    """Read an Iris CSV and validate that its canonical schema is present."""
+    data = _canonicalize_columns(pd.read_csv(source))
+    if data.empty:
+        raise ValueError("The uploaded Iris CSV is empty.")
+    missing = [column for column in REQUIRED_COLUMNS if column not in data.columns]
+    if missing:
+        raise ValueError(
+            f"Missing required columns: {missing}. "
+            "Expected four sepal/petal measurements and a species target."
+        )
     return data
 
 
 def detect_dataset_kind(data: pd.DataFrame) -> str:
-    """Identify official training data or the labeled Kaggle test demo."""
+    """Distinguish the canonical 150-row Iris dataset from custom uploads."""
+    counts = data[TARGET].value_counts()
     if (
-        len(data) == 418
-        and "PassengerId" in data.columns
-        and pd.to_numeric(data["PassengerId"], errors="coerce").min() >= 892
+        len(data) == 150
+        and set(counts.index) == set(SPECIES)
+        and all(int(counts.get(species, 0)) == 50 for species in SPECIES)
     ):
-        return "kaggle_test_with_submission_labels"
-    return "kaggle_training"
-
-
-def extract_titanic(source: str | Path | IO[bytes]) -> pd.DataFrame:
-    data = _repair_collapsed_rows(pd.read_csv(source))
-    if data.empty:
-        raise ValueError("The uploaded CSV is empty.")
-    missing = [column for column in REQUIRED_COLUMNS if column not in data.columns]
-    if missing:
-        hint = " Kaggle test.csv has 418 rows and no Survived target; use train.csv instead." if len(data) == 418 else ""
-        raise ValueError(f"Missing required columns: {missing}.{hint}")
-    if data[TARGET].isna().any():
-        raise ValueError("Survived contains missing labels. Use the Kaggle training dataset with complete targets.")
-    targets = set(pd.to_numeric(data[TARGET], errors="coerce").dropna().unique())
-    if targets != {0, 1}:
-        raise ValueError("Survived must contain both binary classes: 0 and 1.")
-    return data
+        return "sklearn_iris"
+    return "uploaded_iris"
